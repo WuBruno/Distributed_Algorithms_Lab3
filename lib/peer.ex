@@ -15,6 +15,8 @@ defmodule Peer do
     # Initialise ERB
     erb = spawn(ERB, :start, [id])
 
+    # IO.puts("clients are #{inspect(pl)} #{inspect(beb)} #{inspect(erb)} #{inspect(client)}")
+
     send(broadcast_pid, {:pl_connect, id, pl})
 
     receive do

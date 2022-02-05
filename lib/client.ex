@@ -44,14 +44,20 @@ defmodule Client do
         output_count(id, send_count, receive_count)
 
       {:rb_deliver, sender, _payload} ->
-        IO.puts("Peer#{id} RB message received")
+        send_count =
+          if send_count < max_broadcasts do
+            send(erb, {:rb_broadcast, {:max_broadcast, id, send_count + 1}})
+            send_count + 1
+          else
+            send_count
+          end
 
         max_broadcast(
           id,
           erb,
           peers,
           max_broadcasts,
-          send_count + 1,
+          send_count,
           increment_receive(receive_count, sender)
         )
     end

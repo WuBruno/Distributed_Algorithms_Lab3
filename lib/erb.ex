@@ -1,7 +1,8 @@
 defmodule ERB do
   def start(id) do
     receive do
-      {:bind, beb, parent} -> next(id, beb, parent, MapSet.new())
+      {:bind, beb, parent} ->
+        next(id, beb, parent, MapSet.new())
     end
   end
 
@@ -9,7 +10,7 @@ defmodule ERB do
     receive do
       {:rb_broadcast, payload} ->
         send(beb, {:beb_broadcast, {:rb_data, id, payload}})
-        next(id, parent, beb, delivered)
+        next(id, beb, parent, delivered)
 
       {:beb_deliver, _from, {:rb_data, sender, payload} = rb_m} ->
         if payload in delivered do
