@@ -14,25 +14,43 @@ defmodule Broadcast do
   defp start(config, :cluster_start) do
     IO.puts("--> Broadcast at #{Helper.node_string()}")
 
-    peers =
+    peer_pids =
       for n <- 0..(config.n_peers - 1),
           into: %{},
-          do: {n, Node.spawn(:"peer#{n}_#{config.node_suffix}", Peer, :start, [])}
+          do: {n, Node.spawn(:"peer#{n}_#{config.node_suffix}", Peer, :start, [n, self()])}
 
-    # Wait before starting the clients
-    Process.sleep(500)
+    # Bind PLs
+    peer_pls = receive_pls(peer_pids, %{})
 
-    # Bind
-    for {id, pid} <- peers, do: send(pid, {:bind, id, peers})
-
-    # Wait for bind
-    Process.sleep(500)
+    IO.puts("Everything set up and start broadcast")
 
     max_broadcasts = 3000
     timeout = 3000
 
     # Start
-    for {_, pid} <- peers, do: send(pid, {:broadcast, max_broadcasts, timeout})
+    for {_, peer_pl} <- peer_pls,
+        do:
+          send(
+            peer_pl,
+            {:deliver, -1, {:broadcast, max_broadcasts, timeout}}
+          )
+  end
+
+  defp receive_pls(peer_pids, peer_pls) do
+    receive do
+      {:pl_start, id, pl} ->
+        peer_pls = Map.put_new(peer_pls, id, pl)
+
+        if map_size(peer_pls) == map_size(peer_pids) do
+          # Once all received broadcast
+          for {_k, peer_pid} <- peer_pids, do: send(peer_pid, {:bind, peer_pls})
+          # Return peer_pls
+          peer_pls
+        else
+          # Otherwise continue receiving
+          receive_pls(peer_pids, peer_pls)
+        end
+    end
   end
 
   # start/2
