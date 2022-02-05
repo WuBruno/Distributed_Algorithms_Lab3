@@ -1,21 +1,19 @@
 defmodule BEB do
   def start(id) do
     receive do
-      {:bind, pl, client, peer_ids} -> next(id, pl, client, peer_ids)
+      {:bind, pl, parent, peers} -> next(id, pl, parent, peers)
     end
   end
 
-  defp next(id, pl, client, peer_ids) do
+  defp next(id, pl, parent, peers) do
     receive do
       {:beb_broadcast, payload} ->
-        for peer_id <- peer_ids, do: send(pl, {:pl_send, peer_id, payload})
+        for peer <- peers, do: send(pl, {:pl_send, peer, {:beb_broadcast, payload}})
 
-      # IO.puts("BEB#{id} broadcast")
-
-      {:pl_deliver, sender_id, payload} ->
-        send(client, {:beb_deliver, sender_id, payload})
+      {:pl_deliver, from, payload} ->
+        send(parent, {:beb_deliver, from, payload})
     end
 
-    next(id, pl, client, peer_ids)
+    next(id, pl, parent, peers)
   end
 end

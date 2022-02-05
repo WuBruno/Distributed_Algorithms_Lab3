@@ -33,7 +33,7 @@ defmodule Broadcast do
              ])}
 
     # Bind PLs
-    peer_pls = receive_pls(peer_pids, %{})
+    peer_pls = connect_pl(peer_pids, %{})
 
     IO.puts("Everything set up and start broadcast")
 
@@ -45,13 +45,13 @@ defmodule Broadcast do
         do:
           send(
             peer_pl,
-            {:deliver, -1, {:broadcast, max_broadcasts, timeout}}
+            {:deliver, -1, {:rb_data, -1, {:broadcast, max_broadcasts, timeout}}}
           )
   end
 
-  defp receive_pls(peer_pids, peer_pls) do
+  defp connect_pl(peer_pids, peer_pls) do
     receive do
-      {:pl_start, id, pl} ->
+      {:pl_connect, id, pl} ->
         peer_pls = Map.put_new(peer_pls, id, pl)
 
         if map_size(peer_pls) == map_size(peer_pids) do
@@ -61,7 +61,7 @@ defmodule Broadcast do
           peer_pls
         else
           # Otherwise continue receiving
-          receive_pls(peer_pids, peer_pls)
+          connect_pl(peer_pids, peer_pls)
         end
     end
   end

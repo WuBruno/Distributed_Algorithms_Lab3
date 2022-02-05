@@ -1,18 +1,21 @@
 defmodule PL do
   def start(id) do
     receive do
-      {:bind, client_pid, peers} ->
+      {:bind, parent, peers} ->
         # IO.puts("PL#{id} initialised #{inspect(client_pid)} #{inspect(peers)}")
-        next(id, client_pid, peers)
+        next(id, parent, peers)
     end
   end
 
-  defp next(id, client_pid, peers) do
+  defp next(id, parent, peers) do
     receive do
-      {:pl_send, recipient_id, payload} -> send(peers[recipient_id], {:deliver, id, payload})
-      {:deliver, sender_id, payload} -> send(client_pid, {:pl_deliver, sender_id, payload})
+      {:pl_send, recipient, payload} ->
+        send(peers[recipient], {:deliver, id, payload})
+
+      {:deliver, from, payload} ->
+        send(parent, {:pl_deliver, from, payload})
     end
 
-    next(id, client_pid, peers)
+    next(id, parent, peers)
   end
 end
