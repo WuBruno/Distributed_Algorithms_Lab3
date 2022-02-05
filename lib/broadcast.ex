@@ -14,10 +14,15 @@ defmodule Broadcast do
   defp start(config, :cluster_start) do
     IO.puts("--> Broadcast at #{Helper.node_string()}")
 
+    # 0 to 100
+    reliability = 98
+
     peer_pids =
       for n <- 0..(config.n_peers - 1),
           into: %{},
-          do: {n, Node.spawn(:"peer#{n}_#{config.node_suffix}", Peer, :start, [n, self()])}
+          do:
+            {n,
+             Node.spawn(:"peer#{n}_#{config.node_suffix}", Peer, :start, [n, self(), reliability])}
 
     # Bind PLs
     peer_pls = receive_pls(peer_pids, %{})

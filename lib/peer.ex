@@ -3,11 +3,11 @@
 
 defmodule Peer do
   # add your code here, start(), next() and any other functions
-  def start(id, broadcast_pid) do
+  def start(id, broadcast_pid, reliability) do
     # IO.puts("-> Starting Peer at #{Helper.node_string()}")
 
     # Initialise PL
-    pl = spawn(PL, :start, [id])
+    pl = spawn(LPL, :start, [id, reliability])
     # Initialise Client
     client = spawn(Client, :start, [id])
     # Initialise BEB
