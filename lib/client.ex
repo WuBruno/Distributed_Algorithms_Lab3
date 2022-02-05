@@ -1,31 +1,30 @@
 defmodule Client do
   def start(id) do
     receive do
-      {:bind, pl_pid, peer_ids} ->
-        # IO.puts("Client#{id} initialised #{inspect(pl_pid)} #{inspect(peer_ids)}")
-        next(id, pl_pid, peer_ids)
+      {:bind, pl, beb, peer_ids} ->
+        # IO.puts("Client#{id} initialised #{inspect(pl)} #{inspect(peer_ids)}")
+        next(id, pl, beb, peer_ids)
     end
   end
 
-  defp next(id, pl_pid, peer_ids) do
+  defp next(id, pl, beb, peer_ids) do
     receive do
       {:pl_deliver, _sender_id, payload} ->
         case payload do
           {:broadcast, max_broadcasts, timeout} ->
             # Begin max_broadcasts
-            for peer_id <- peer_ids,
-                do: send(pl_pid, {:pl_send, peer_id, {:max_broadcasts}})
+            send(beb, {:beb_broadcast, {:max_broadcast}})
 
             IO.puts("Peer#{id} received and started max_broadcast")
 
             send_count = for peer_id <- peer_ids, into: %{}, do: {peer_id, 1}
             receive_count = for peer_id <- peer_ids, into: %{}, do: {peer_id, 0}
 
-            Process.send_after(pl_pid, {:pl_send, id, {:timeout}}, timeout)
+            Process.send_after(pl, {:pl_send, id, {:timeout}}, timeout)
 
             max_broadcast(
               id,
-              pl_pid,
+              pl,
               peer_ids,
               max_broadcasts,
               timeout,
@@ -38,7 +37,7 @@ defmodule Client do
 
   defp max_broadcast(
          id,
-         pl_pid,
+         pl,
          peer_ids,
          max_broadcasts,
          timeout,
@@ -56,7 +55,7 @@ defmodule Client do
 
             IO.puts("Peer#{id}:  " <> output)
 
-          {:max_broadcasts} ->
+          {:max_broadcast} ->
             # Increment receive
             receive_count = Map.update!(receive_count, sender_id, fn val -> val + 1 end)
 
@@ -64,7 +63,7 @@ defmodule Client do
             send_count =
               if send_count[sender_id] < max_broadcasts do
                 # Send
-                send(pl_pid, {:pl_send, sender_id, {:max_broadcasts}})
+                send(pl, {:pl_send, sender_id, {:max_broadcast}})
 
                 # Increment send
                 Map.update!(send_count, sender_id, fn val -> val + 1 end)
@@ -74,7 +73,7 @@ defmodule Client do
 
             max_broadcast(
               id,
-              pl_pid,
+              pl,
               peer_ids,
               max_broadcasts,
               timeout,
